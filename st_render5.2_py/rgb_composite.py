@@ -8,6 +8,7 @@ from PIL import Image
 import os
 
 from hsd_reader import hsd_read, HSData
+from segment_merger import read_hsd_full
 
 
 def normalize_band_data(data: np.ndarray, bit_num: int, gamma: float = 2.2) -> np.ndarray:
@@ -22,8 +23,11 @@ def normalize_band_data(data: np.ndarray, bit_num: int, gamma: float = 2.2) -> n
     Returns:
         正規化された配列 (0-255のUInt8)
     """
-    # 最大値でスケーリング
+    # 欠損値（通常65535または最大値）を検出
     max_value = (2 ** bit_num) - 1
+    invalid_mask = (data >= max_value) | (data == 0)
+
+    # 最大値でスケーリング
     normalized = data.astype(np.float32) / max_value
 
     # ガンマ補正
@@ -31,6 +35,10 @@ def normalize_band_data(data: np.ndarray, bit_num: int, gamma: float = 2.2) -> n
 
     # 0-255にスケーリング
     scaled = (corrected * 255).clip(0, 255).astype(np.uint8)
+
+    # 欠損値を暗いグレー（地球の縁の色に近い値）に設定
+    # 宇宙背景として自然な暗さ: RGB(30, 33, 35)程度
+    scaled[invalid_mask] = 32
 
     return scaled
 
@@ -41,7 +49,8 @@ def create_rgb_composite(
     blue_file: str,
     output_path: str,
     gamma: float = 2.2,
-    delete_dat: bool = False
+    delete_dat: bool = False,
+    auto_merge: bool = True
 ) -> Tuple[int, int]:
     """
     3つのHSDファイルからRGB合成画像を生成
@@ -53,21 +62,22 @@ def create_rgb_composite(
         output_path: 出力ファイルパス
         gamma: ガンマ補正値
         delete_dat: 処理後にDATファイルを削除するか
+        auto_merge: セグメントを自動結合するか (デフォルト: True)
 
     Returns:
         (width, height) のタプル
     """
     print("RGB合成を開始します...")
 
-    # 各バンドのHSDファイルを読み込む
+    # 各バンドのHSDファイルを読み込む（セグメント自動結合）
     print(f"赤チャンネル読み込み中: {red_file}")
-    red_data = hsd_read(red_file, delete_dat=delete_dat, debug=False)
+    red_data = read_hsd_full(red_file, delete_dat=delete_dat, debug=False, auto_merge=auto_merge)
 
     print(f"緑チャンネル読み込み中: {green_file}")
-    green_data = hsd_read(green_file, delete_dat=delete_dat, debug=False)
+    green_data = read_hsd_full(green_file, delete_dat=delete_dat, debug=False, auto_merge=auto_merge)
 
     print(f"青チャンネル読み込み中: {blue_file}")
-    blue_data = hsd_read(blue_file, delete_dat=delete_dat, debug=False)
+    blue_data = read_hsd_full(blue_file, delete_dat=delete_dat, debug=False, auto_merge=auto_merge)
 
     # サイズの確認と調整
     print(f"バンド情報: R={red_data.band}({red_data.width}x{red_data.height}), "
@@ -134,7 +144,8 @@ def create_natural_color_rgb(
     band4_file: str,
     output_path: str,
     gamma: float = 2.2,
-    delete_dat: bool = False
+    delete_dat: bool = False,
+    auto_merge: bool = True
 ) -> Tuple[int, int]:
     """
     Natural Color RGB合成
@@ -147,6 +158,7 @@ def create_natural_color_rgb(
         output_path: 出力ファイルパス
         gamma: ガンマ補正値
         delete_dat: 処理後にDATファイルを削除するか
+        auto_merge: セグメントを自動結合するか (デフォルト: True)
 
     Returns:
         (width, height) のタプル
@@ -160,5 +172,6 @@ def create_natural_color_rgb(
         blue_file=band1_file,  # バンド1を青として使用
         output_path=output_path,
         gamma=gamma,
-        delete_dat=delete_dat
+        delete_dat=delete_dat,
+        auto_merge=auto_merge
     )

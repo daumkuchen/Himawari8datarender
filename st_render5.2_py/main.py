@@ -17,6 +17,7 @@ from goes_reader import goes_read
 from calibration import hsd_calibration, goes_calibration
 from colorscale import bw_scale, bd_scale, color2_scale, wvnrl_scale
 from rgb_composite import create_rgb_composite, create_natural_color_rgb
+from segment_merger import read_hsd_full
 
 
 def get_output_path(input_filepath: str, output_path: str = None, output_dir: str = None) -> str:
@@ -57,7 +58,8 @@ def get_output_path(input_filepath: str, output_path: str = None, output_dir: st
     return final_path
 
 
-def hsd_render(filepath: str, color: int, output_path: str = None, output_dir: str = None, delete_dat: bool = False):
+def hsd_render(filepath: str, color: int, output_path: str = None, output_dir: str = None,
+               delete_dat: bool = False, auto_merge: bool = True):
     """
     HSDファイルをレンダリング
 
@@ -67,14 +69,15 @@ def hsd_render(filepath: str, color: int, output_path: str = None, output_dir: s
         output_path: 出力ファイル名 (Noneの場合は自動生成)
         output_dir: 出力ディレクトリ (指定された場合、このディレクトリに保存)
         delete_dat: 処理後にDATファイルを削除するか
+        auto_merge: セグメントを自動結合するか (デフォルト: True)
     """
     print(f"HSDファイルを処理中: {filepath}")
 
     # 出力ファイルパスの決定
     output_path = get_output_path(filepath, output_path, output_dir)
 
-    # HSDファイルを読み込む
-    hs_data = hsd_read(filepath, delete_dat=delete_dat, debug=True)
+    # HSDファイルを読み込む（セグメント自動結合）
+    hs_data = read_hsd_full(filepath, delete_dat=delete_dat, debug=True, auto_merge=auto_merge)
 
     print(f"衛星: {hs_data.satellite_name}")
     print(f"サイズ: {hs_data.width}x{hs_data.height}")
