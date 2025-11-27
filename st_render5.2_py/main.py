@@ -16,6 +16,7 @@ from hsd_reader import hsd_read
 from goes_reader import goes_read
 from calibration import hsd_calibration, goes_calibration
 from colorscale import bw_scale, bd_scale, color2_scale, wvnrl_scale
+from rgb_composite import create_rgb_composite, create_natural_color_rgb
 
 
 def get_output_path(input_filepath: str, output_path: str = None, output_dir: str = None) -> str:
@@ -172,6 +173,9 @@ st_render V5_py - Himawari/GOES衛星データ可視化ツール (Python版)
     GOES netCDFファイルの場合:
         python main.py goesncfile file <ファイル名> color <カラースケール> [outpic <出力ファイル名>] [outdir <出力ディレクトリ>]
 
+    RGB合成の場合:
+        python main.py rgbfile red <赤ファイル> green <緑ファイル> blue <青ファイル> [outpic <出力ファイル名>] [outdir <出力ディレクトリ>] [gamma <ガンマ値>]
+
 カラースケール:
     0: 白黒
     1: BD
@@ -181,6 +185,7 @@ st_render V5_py - Himawari/GOES衛星データ可視化ツール (Python版)
 オプション:
     outpic: 出力ファイル名を指定（省略時は入力ファイル名.png）
     outdir: 出力ディレクトリを指定（省略時はカレントディレクトリ）
+    gamma: ガンマ補正値を指定（RGB合成のみ、省略時は2.2）
 
 例:
     # 基本的な使用方法
@@ -192,8 +197,8 @@ st_render V5_py - Himawari/GOES衛星データ可視化ツール (Python版)
     # 出力ディレクトリを指定
     python main.py hsdfile file HS_H09_20250321_0810_B13_R302_R20_S0101.DAT.bz2 color 2 outdir ./output
 
-    # 出力ファイル名とディレクトリの両方を指定
-    python main.py hsdfile file HS_H09_20250321_0810_B13_R302_R20_S0101.DAT.bz2 color 2 outpic result.png outdir ./images
+    # RGB合成（バンド1、2、4を使用）
+    python main.py rgbfile red band4.bz2 green band2.bz2 blue band1.bz2 outpic rgb.png outdir ./output
 """
     print(help_text)
 
@@ -219,9 +224,20 @@ def main():
             op = "hsd"
         elif arg == "goesncfile":
             op = "goes"
+        elif arg == "rgbfile":
+            op = "rgb"
         elif arg == "file" and i + 1 < len(sys.argv):
             i += 1
             args['file'] = sys.argv[i]
+        elif arg == "red" and i + 1 < len(sys.argv):
+            i += 1
+            args['red'] = sys.argv[i]
+        elif arg == "green" and i + 1 < len(sys.argv):
+            i += 1
+            args['green'] = sys.argv[i]
+        elif arg == "blue" and i + 1 < len(sys.argv):
+            i += 1
+            args['blue'] = sys.argv[i]
         elif arg == "color" and i + 1 < len(sys.argv):
             i += 1
             args['color'] = int(sys.argv[i])
@@ -231,14 +247,28 @@ def main():
         elif arg == "outdir" and i + 1 < len(sys.argv):
             i += 1
             args['outdir'] = sys.argv[i]
+        elif arg == "gamma" and i + 1 < len(sys.argv):
+            i += 1
+            args['gamma'] = float(sys.argv[i])
 
         i += 1
 
     # 必須引数のチェック
-    if op is None or 'file' not in args or 'color' not in args:
-        print("エラー: 必須引数が不足しています")
+    if op is None:
+        print("エラー: コマンドが指定されていません")
         show_help()
         return 1
+
+    if op == "rgb":
+        if 'red' not in args or 'green' not in args or 'blue' not in args:
+            print("エラー: RGB合成には red, green, blue ファイルが必要です")
+            show_help()
+            return 1
+    else:
+        if 'file' not in args or 'color' not in args:
+            print("エラー: 必須引数が不足しています")
+            show_help()
+            return 1
 
     # 処理開始
     start_time = time.time()
@@ -258,6 +288,21 @@ def main():
                 args['color'],
                 args.get('outpic', None),
                 args.get('outdir', None)
+            )
+        elif op == "rgb":
+            # 出力ファイル名の決定
+            output_path = args.get('outpic', 'rgb_composite.png')
+            if args.get('outdir'):
+                output_path = os.path.join(args['outdir'], os.path.basename(output_path))
+
+            # RGB合成を実行
+            create_rgb_composite(
+                red_file=args['red'],
+                green_file=args['green'],
+                blue_file=args['blue'],
+                output_path=output_path,
+                gamma=args.get('gamma', 2.2),
+                delete_dat=False
             )
     except Exception as e:
         print(f"エラーが発生しました: {e}")

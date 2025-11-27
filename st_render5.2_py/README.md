@@ -73,6 +73,23 @@ python main.py goesncfile file OR_ABI-L1b-RadM1-M6C13_G16_s20192440901238_e20192
 python main.py goesncfile file OR_ABI-L1b-RadM1-M6C13_G16_s20192440901238_e20192440901307_c20192440901338.nc color 2 outdir ./output
 ```
 
+#### RGB合成の場合
+
+```bash
+python main.py rgbfile red <赤チャンネルファイル> green <緑チャンネルファイル> blue <青チャンネルファイル> [outpic <出力ファイル名>] [outdir <出力ディレクトリ>] [gamma <ガンマ値>]
+```
+
+例:
+```bash
+# バンド4(赤)、バンド2(緑)、バンド1(青)を使用したNatural Color RGB合成
+python main.py rgbfile red band4.bz2 green band2.bz2 blue band1.bz2 outpic rgb.png outdir ./output
+
+# ガンマ補正値を指定
+python main.py rgbfile red band4.bz2 green band2.bz2 blue band1.bz2 outpic rgb.png outdir ./output gamma 2.5
+```
+
+**注意**: Himawari-8/9の場合、True Color RGBにはバンド3(赤)が推奨されますが、バンド3が利用できない場合はバンド4(近赤外)を赤チャンネルとして使用できます。
+
 ### パラメータ
 
 #### カラースケール
@@ -84,10 +101,13 @@ python main.py goesncfile file OR_ABI-L1b-RadM1-M6C13_G16_s20192440901238_e20192
 
 #### オプション
 
-- `outpic <ファイル名>`: 出力ファイル名を指定（省略時は「入力ファイル名.png」）
+- `outpic <ファイル名>`: 出力ファイル名を指定（省略時は「入力ファイル名.png」またはRGB合成の場合は「rgb_composite.png」）
 - `outdir <ディレクトリ>`: 出力ディレクトリを指定（省略時はカレントディレクトリ）
   - 指定したディレクトリが存在しない場合は自動的に作成されます
   - `outpic`と`outdir`の両方を指定した場合、`outdir`に`outpic`で指定したファイル名で保存されます
+- `gamma <値>`: ガンマ補正値を指定（RGB合成のみ、省略時は2.2）
+  - 値が大きいほど明るい画像になります
+  - 推奨値: 1.8〜2.5
 
 ## データソース
 
