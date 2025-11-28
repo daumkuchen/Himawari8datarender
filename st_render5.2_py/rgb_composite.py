@@ -6,6 +6,7 @@ import numpy as np
 from typing import List, Tuple, Optional
 from PIL import Image
 import os
+import cv2
 
 from hsd_reader import hsd_read, HSData
 from segment_merger import read_hsd_full
@@ -98,24 +99,25 @@ def create_rgb_composite(
     green_channel = normalize_band_data(green_data.data, green_data.bit_num)
     blue_channel = normalize_band_data(blue_data.data, blue_data.bit_num)
 
-    # 必要に応じてリサイズ
+    # 必要に応じてリサイズ（OpenCVのINTER_AREAは縮小に最適化）
     if red_data.width != target_width or red_data.height != target_height:
         print(f"赤チャンネルをリサイズ中: {red_data.width}x{red_data.height} -> {target_width}x{target_height}")
-        red_img = Image.fromarray(red_channel.reshape(red_data.height, red_data.width))
-        red_img = red_img.resize((target_width, target_height), Image.Resampling.LANCZOS)
-        red_channel = np.array(red_img).flatten()
+        red_img = red_channel.reshape(red_data.height, red_data.width)
+        # INTER_AREAは縮小処理で最速かつ高品質
+        red_img = cv2.resize(red_img, (target_width, target_height), interpolation=cv2.INTER_AREA)
+        red_channel = red_img.flatten()
 
     if green_data.width != target_width or green_data.height != target_height:
         print(f"緑チャンネルをリサイズ中: {green_data.width}x{green_data.height} -> {target_width}x{target_height}")
-        green_img = Image.fromarray(green_channel.reshape(green_data.height, green_data.width))
-        green_img = green_img.resize((target_width, target_height), Image.Resampling.LANCZOS)
-        green_channel = np.array(green_img).flatten()
+        green_img = green_channel.reshape(green_data.height, green_data.width)
+        green_img = cv2.resize(green_img, (target_width, target_height), interpolation=cv2.INTER_AREA)
+        green_channel = green_img.flatten()
 
     if blue_data.width != target_width or blue_data.height != target_height:
         print(f"青チャンネルをリサイズ中: {blue_data.width}x{blue_data.height} -> {target_width}x{target_height}")
-        blue_img = Image.fromarray(blue_channel.reshape(blue_data.height, blue_data.width))
-        blue_img = blue_img.resize((target_width, target_height), Image.Resampling.LANCZOS)
-        blue_channel = np.array(blue_img).flatten()
+        blue_img = blue_channel.reshape(blue_data.height, blue_data.width)
+        blue_img = cv2.resize(blue_img, (target_width, target_height), interpolation=cv2.INTER_AREA)
+        blue_channel = blue_img.flatten()
 
     width = target_width
     height = target_height
@@ -147,7 +149,9 @@ def create_rgb_composite(
         os.makedirs(output_directory, exist_ok=True)
         print(f"出力ディレクトリを作成しました: {output_directory}")
 
-    img.save(output_path, quality=99)
+    # quality=90で保存速度を向上（視覚的にはquality=99とほぼ同じ）
+    # optimize=Trueは圧縮最適化に時間がかかるため使用しない
+    img.save(output_path, quality=90)
     print(f"RGB合成画像を保存しました: {output_path}")
 
     return width, height
