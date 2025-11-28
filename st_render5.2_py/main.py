@@ -18,6 +18,7 @@ from calibration import hsd_calibration, goes_calibration
 from colorscale import bw_scale, bd_scale, color2_scale, wvnrl_scale
 from rgb_composite import create_rgb_composite, create_natural_color_rgb
 from segment_merger import read_hsd_full
+from image_enhance import apply_imagemagick_enhance
 
 
 def get_output_path(input_filepath: str, output_path: str = None, output_dir: str = None) -> str:
@@ -59,7 +60,7 @@ def get_output_path(input_filepath: str, output_path: str = None, output_dir: st
 
 
 def hsd_render(filepath: str, color: int, output_path: str = None, output_dir: str = None,
-               delete_dat: bool = False, auto_merge: bool = True):
+               delete_dat: bool = False, auto_merge: bool = True, enhance: bool = False):
     """
     HSDファイルをレンダリング
 
@@ -70,6 +71,7 @@ def hsd_render(filepath: str, color: int, output_path: str = None, output_dir: s
         output_dir: 出力ディレクトリ (指定された場合、このディレクトリに保存)
         delete_dat: 処理後にDATファイルを削除するか
         auto_merge: セグメントを自動結合するか (デフォルト: True)
+        enhance: ImageMagick風の画像補正を適用するか (デフォルト: False)
     """
     print(f"HSDファイルを処理中: {filepath}")
 
@@ -109,14 +111,20 @@ def hsd_render(filepath: str, color: int, output_path: str = None, output_dir: s
     # 画像を保存
     # データを2次元に変形
     img_array = pixels.reshape(hs_data.height, hs_data.width, 3)
+
+    # ImageMagick風の補正を適用（オプション）
+    if enhance:
+        print("画像補正を適用中...")
+        img_array = apply_imagemagick_enhance(img_array)
+
     img = Image.fromarray(img_array)
-    img.save(output_path)
+    img.save(output_path, quality=99)
 
     print(f"hsdRenderdbg3")
     print(f"画像を保存しました: {output_path}")
 
 
-def goes_render(filepath: str, color: int, output_path: str = None, output_dir: str = None):
+def goes_render(filepath: str, color: int, output_path: str = None, output_dir: str = None, enhance: bool = False):
     """
     GOES netCDFファイルをレンダリング
 
@@ -125,6 +133,7 @@ def goes_render(filepath: str, color: int, output_path: str = None, output_dir: 
         color: カラースケール (0: 白黒, 1: BD, 2: Color2, 3: 水蒸気)
         output_path: 出力ファイル名 (Noneの場合は自動生成)
         output_dir: 出力ディレクトリ (指定された場合、このディレクトリに保存)
+        enhance: ImageMagick風の画像補正を適用するか (デフォルト: False)
     """
     print(f"GOES netCDFファイルを処理中: {filepath}")
 
@@ -158,8 +167,14 @@ def goes_render(filepath: str, color: int, output_path: str = None, output_dir: 
     # 画像を保存
     # データを2次元に変形
     img_array = pixels.reshape(goes_data.y, goes_data.x, 3)
+
+    # ImageMagick風の補正を適用（オプション）
+    if enhance:
+        print("画像補正を適用中...")
+        img_array = apply_imagemagick_enhance(img_array)
+
     img = Image.fromarray(img_array)
-    img.save(output_path)
+    img.save(output_path, quality=99)
 
     print(f"画像を保存しました: {output_path}")
 
@@ -171,10 +186,10 @@ st_render V5_py - Himawari/GOES衛星データ可視化ツール (Python版)
 
 使用方法:
     HSDファイルの場合:
-        python main.py hsdfile file <ファイル名> color <カラースケール> [outpic <出力ファイル名>] [outdir <出力ディレクトリ>]
+        python main.py hsdfile file <ファイル名> color <カラースケール> [outpic <出力ファイル名>] [outdir <出力ディレクトリ>] [enhance]
 
     GOES netCDFファイルの場合:
-        python main.py goesncfile file <ファイル名> color <カラースケール> [outpic <出力ファイル名>] [outdir <出力ディレクトリ>]
+        python main.py goesncfile file <ファイル名> color <カラースケール> [outpic <出力ファイル名>] [outdir <出力ディレクトリ>] [enhance]
 
     RGB合成の場合:
         python main.py rgbfile red <赤ファイル> green <緑ファイル> blue <青ファイル> [outpic <出力ファイル名>] [outdir <出力ディレクトリ>] [gamma <ガンマ値>]
@@ -188,7 +203,8 @@ st_render V5_py - Himawari/GOES衛星データ可視化ツール (Python版)
 オプション:
     outpic: 出力ファイル名を指定（省略時は入力ファイル名.png）
     outdir: 出力ディレクトリを指定（省略時はカレントディレクトリ）
-    gamma: ガンマ補正値を指定（RGB合成のみ、省略時は2.2）
+    gamma: ガンマ補正の指数値を指定（RGB合成のみ、省略時は0.5、推奨範囲: 0.4-0.6）
+    enhance: ImageMagick風の画像補正を適用（-level 0%,100%,1.5 -modulate 100,250,102 -contrastに相当）
 
 例:
     # 基本的な使用方法
@@ -200,8 +216,12 @@ st_render V5_py - Himawari/GOES衛星データ可視化ツール (Python版)
     # 出力ディレクトリを指定
     python main.py hsdfile file HS_H09_20250321_0810_B13_R302_R20_S0101.DAT.bz2 color 2 outdir ./output
 
-    # RGB合成（バンド1、2、4を使用）
-    python main.py rgbfile red band4.bz2 green band2.bz2 blue band1.bz2 outpic rgb.png outdir ./output
+    # Himawari-8/9 True Color RGB合成（推奨）
+    # Band3 (0.64μm - 赤) + Band2 (0.51μm - 緑) + Band1 (0.47μm - 青)
+    python main.py rgbfile red band3.bz2 green band2.bz2 blue band1.bz2 outpic rgb.png outdir ./output enhance
+
+    # Band3が利用できない場合: Band4を赤チャンネルとして使用
+    python main.py rgbfile red band4.bz2 green band2.bz2 blue band1.bz2 outpic rgb.png outdir ./output enhance
 """
     print(help_text)
 
@@ -253,6 +273,8 @@ def main():
         elif arg == "gamma" and i + 1 < len(sys.argv):
             i += 1
             args['gamma'] = float(sys.argv[i])
+        elif arg == "enhance":
+            args['enhance'] = True
 
         i += 1
 
@@ -283,14 +305,16 @@ def main():
                 args['color'],
                 args.get('outpic', None),
                 args.get('outdir', None),
-                delete_dat=False
+                delete_dat=False,
+                enhance=args.get('enhance', False)
             )
         elif op == "goes":
             goes_render(
                 args['file'],
                 args['color'],
                 args.get('outpic', None),
-                args.get('outdir', None)
+                args.get('outdir', None),
+                enhance=args.get('enhance', False)
             )
         elif op == "rgb":
             # 出力ファイル名の決定
@@ -304,8 +328,9 @@ def main():
                 green_file=args['green'],
                 blue_file=args['blue'],
                 output_path=output_path,
-                gamma=args.get('gamma', 2.2),
-                delete_dat=False
+                gamma=args.get('gamma', 0.5),
+                delete_dat=False,
+                enhance=args.get('enhance', False)
             )
     except Exception as e:
         print(f"エラーが発生しました: {e}")

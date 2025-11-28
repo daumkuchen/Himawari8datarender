@@ -21,6 +21,7 @@ C++版（st_render5.2_cpp）からPythonに移植されました。
   - numpy
   - Pillow
   - netCDF4 (GOES衛星データを処理する場合)
+  - opencv-python (画像補正機能を使用する場合、オプション)
 
 ## インストール
 
@@ -58,6 +59,9 @@ python main.py hsdfile file HS_H09_20250321_0810_B13_R302_R20_S0101.DAT.bz2 colo
 
 # 出力ファイル名とディレクトリの両方を指定
 python main.py hsdfile file HS_H09_20250321_0810_B13_R302_R20_S0101.DAT.bz2 color 1 outpic result.png outdir ./images
+
+# ImageMagick風の画像補正を適用
+python main.py hsdfile file HS_H09_20250321_0810_B13_R302_R20_S0101.DAT.bz2 color 2 outdir ./output enhance
 ```
 
 #### GOES netCDFファイルの場合
@@ -83,14 +87,23 @@ python main.py rgbfile red <赤チャンネルファイル> green <緑チャン�
 
 例:
 ```bash
-# バンド4(赤)、バンド2(緑)、バンド1(青)を使用したNatural Color RGB合成
-python main.py rgbfile red band4.bz2 green band2.bz2 blue band1.bz2 outpic rgb.png outdir ./output
+# Himawari-8/9 True Color RGB合成（推奨）
+# Band3 (0.64μm - 赤) → 赤チャンネル
+# Band2 (0.51μm - 緑) → 緑チャンネル
+# Band1 (0.47μm - 青) → 青チャンネル
+python main.py rgbfile red band3.bz2 green band2.bz2 blue band1.bz2 outpic rgb.png outdir ./output enhance
 
-# ガンマ補正値を指定
-python main.py rgbfile red band4.bz2 green band2.bz2 blue band1.bz2 outpic rgb.png outdir ./output gamma 2.5
+# Band3が利用できない場合: Band4 (0.86μm - 近赤外) を赤チャンネルとして使用
+python main.py rgbfile red band4.bz2 green band2.bz2 blue band1.bz2 outpic rgb.png outdir ./output enhance
+
+# ガンマ補正値を指定（より明るくする）
+python main.py rgbfile red band3.bz2 green band2.bz2 blue band1.bz2 outpic rgb.png outdir ./output gamma 0.4
 ```
 
-**注意**: Himawari-8/9の場合、True Color RGBにはバンド3(赤)が推奨されますが、バンド3が利用できない場合はバンド4(近赤外)を赤チャンネルとして使用できます。
+**重要**:
+- **True Color RGB**: Band3 (赤) + Band2 (緑) + Band1 (青) の組み合わせが推奨されます
+- **バンドの波長**: Band1=0.47μm（青）、Band2=0.51μm（緑）、Band3=0.64μm（赤）
+- Band3が利用できない場合のみ、Band4 (0.86μm - 近赤外) を代用できます
 
 ### セグメント結合機能
 
@@ -136,9 +149,15 @@ python main.py hsdfile file HS_H08_20170623_0250_B01_FLDK_R10_S0110.DAT.bz2 colo
 - `outdir <ディレクトリ>`: 出力ディレクトリを指定（省略時はカレントディレクトリ）
   - 指定したディレクトリが存在しない場合は自動的に作成されます
   - `outpic`と`outdir`の両方を指定した場合、`outdir`に`outpic`で指定したファイル名で保存されます
-- `gamma <値>`: ガンマ補正値を指定（RGB合成のみ、省略時は2.2）
-  - 値が大きいほど明るい画像になります
-  - 推奨値: 1.8〜2.5
+- `gamma <値>`: ガンマ補正の指数値を指定（RGB合成のみ、省略時は0.5）
+  - 値が1未満の場合、暗部が明るくなります（例: 0.5 → pixel^0.5）
+  - 推奨値: 0.4〜0.6（可視光バンドのRGB合成で暗部を見やすくする）
+  - **注意**: `enhance`オプションと併用することを推奨
+- `enhance`: ImageMagick風の画像補正を適用（単一バンド・RGB合成の両方で使用可能）
+  - `-level 0%,100%,1.5 -modulate 100,250,102 -contrast`に相当
+  - ガンマ補正（1.5）、彩度強調（250%）、色相調整（102%）、コントラスト強調を適用
+  - RGB合成画像のフルディスク補正に最適化
+  - 色相調整にはopencv-pythonが必要（未インストールの場合は色相調整のみスキップ）
 
 ## データソース
 

@@ -75,18 +75,22 @@ def bd_scale(temp_array: np.ndarray) -> np.ndarray:
     # ベクトル化した条件分岐
     result = np.zeros(len(temp_array), dtype=np.uint8)
 
-    result[temp_array > 303.15] = 0
-    mask = (temp_array > 282.15) & (temp_array <= 303.15)
+    # 欠損値（0K）は黒のまま
+    valid_mask = temp_array > 0
+
+    result[valid_mask & (temp_array > 303.15)] = 0
+    mask = valid_mask & (temp_array > 282.15) & (temp_array <= 303.15)
     result[mask] = ((303.15 - temp_array[mask]) * 12).astype(np.uint8)
-    mask = (temp_array > 242.15) & (temp_array <= 282.15)
+    mask = valid_mask & (temp_array > 242.15) & (temp_array <= 282.15)
     result[mask] = ((282.15 - temp_array[mask]) * 2 + 100).astype(np.uint8)
-    result[(temp_array > 231.15) & (temp_array <= 242.15)] = 80
-    result[(temp_array > 219.15) & (temp_array <= 231.15)] = 130
-    result[(temp_array > 209.15) & (temp_array <= 219.15)] = 190
-    result[(temp_array > 203.15) & (temp_array <= 209.15)] = 0
-    result[(temp_array > 197.15) & (temp_array <= 203.15)] = 255
-    result[(temp_array > 192.15) & (temp_array <= 197.15)] = 170
-    result[temp_array <= 192.15] = 120
+    result[valid_mask & (temp_array > 231.15) & (temp_array <= 242.15)] = 80
+    result[valid_mask & (temp_array > 219.15) & (temp_array <= 231.15)] = 130
+    result[valid_mask & (temp_array > 209.15) & (temp_array <= 219.15)] = 190
+    result[valid_mask & (temp_array > 203.15) & (temp_array <= 209.15)] = 0
+    result[valid_mask & (temp_array > 197.15) & (temp_array <= 203.15)] = 255
+    result[valid_mask & (temp_array > 192.15) & (temp_array <= 197.15)] = 170
+    mask = valid_mask & (temp_array <= 192.15)
+    result[mask] = 120
 
     # RGB3チャンネルに複製
     rgb = np.stack([result, result, result], axis=-1)
@@ -98,16 +102,19 @@ def color2_r(temp_array: np.ndarray) -> np.ndarray:
     """Color2スケール - 赤チャンネル"""
     result = np.zeros(len(temp_array), dtype=np.uint8)
 
-    result[temp_array > 303.15] = 0
-    mask = (temp_array > 243.15) & (temp_array <= 303.15)
+    # 欠損値（0K）は黒のまま
+    valid_mask = temp_array > 0
+
+    result[valid_mask & (temp_array > 303.15)] = 0
+    mask = valid_mask & (temp_array > 243.15) & (temp_array <= 303.15)
     result[mask] = ((303.15 - temp_array[mask]) * 4).astype(np.uint8)
-    result[(temp_array > 223.15) & (temp_array <= 243.15)] = 50
-    result[(temp_array > 203.15) & (temp_array <= 223.15)] = 0
-    mask = (temp_array > 193.15) & (temp_array <= 203.15)
+    result[valid_mask & (temp_array > 223.15) & (temp_array <= 243.15)] = 50
+    result[valid_mask & (temp_array > 203.15) & (temp_array <= 223.15)] = 0
+    mask = valid_mask & (temp_array > 193.15) & (temp_array <= 203.15)
     result[mask] = ((203.15 - temp_array[mask]) * 15 + 100).astype(np.uint8)
-    mask = (temp_array > 183.15) & (temp_array <= 193.15)
+    mask = valid_mask & (temp_array > 183.15) & (temp_array <= 193.15)
     result[mask] = ((temp_array[mask] - 183.15) * 25).astype(np.uint8)
-    mask = temp_array <= 183.15
+    mask = valid_mask & (temp_array <= 183.15)
     result[mask] = ((temp_array[mask] - 173.15) * 25).astype(np.uint8)
 
     return result
@@ -117,18 +124,21 @@ def color2_g(temp_array: np.ndarray) -> np.ndarray:
     """Color2スケール - 緑チャンネル"""
     result = np.zeros(len(temp_array), dtype=np.uint8)
 
-    result[temp_array > 303.15] = 0
-    mask = (temp_array > 243.15) & (temp_array <= 303.15)
+    # 欠損値（0K）は黒のまま
+    valid_mask = temp_array > 0
+
+    result[valid_mask & (temp_array > 303.15)] = 0
+    mask = valid_mask & (temp_array > 243.15) & (temp_array <= 303.15)
     result[mask] = ((303.15 - temp_array[mask]) * 4).astype(np.uint8)
-    mask = (temp_array > 223.15) & (temp_array <= 243.15)
+    mask = valid_mask & (temp_array > 223.15) & (temp_array <= 243.15)
     result[mask] = ((temp_array[mask] - 223.15) * 6 + 120).astype(np.uint8)
-    result[(temp_array > 213.15) & (temp_array <= 223.15)] = 0
-    mask = (temp_array > 203.15) & (temp_array <= 213.15)
+    result[valid_mask & (temp_array > 213.15) & (temp_array <= 223.15)] = 0
+    mask = valid_mask & (temp_array > 203.15) & (temp_array <= 213.15)
     result[mask] = ((213.15 - temp_array[mask]) * 15 + 100).astype(np.uint8)
-    result[(temp_array > 193.15) & (temp_array <= 203.15)] = 0
-    mask = (temp_array > 183.15) & (temp_array <= 193.15)
+    result[valid_mask & (temp_array > 193.15) & (temp_array <= 203.15)] = 0
+    mask = valid_mask & (temp_array > 183.15) & (temp_array <= 193.15)
     result[mask] = ((temp_array[mask] - 183.15) * 25).astype(np.uint8)
-    mask = temp_array <= 183.15
+    mask = valid_mask & (temp_array <= 183.15)
     result[mask] = ((temp_array[mask] - 173.15) * 25).astype(np.uint8)
 
     return result
@@ -138,15 +148,18 @@ def color2_b(temp_array: np.ndarray) -> np.ndarray:
     """Color2スケール - 青チャンネル"""
     result = np.zeros(len(temp_array), dtype=np.uint8)
 
-    result[temp_array > 303.15] = 0
-    mask = (temp_array > 243.15) & (temp_array <= 303.15)
+    # 欠損値（0K）は黒のまま
+    valid_mask = temp_array > 0
+
+    result[valid_mask & (temp_array > 303.15)] = 0
+    mask = valid_mask & (temp_array > 243.15) & (temp_array <= 303.15)
     result[mask] = ((303.15 - temp_array[mask]) * 4).astype(np.uint8)
-    mask = (temp_array > 223.15) & (temp_array <= 243.15)
+    mask = valid_mask & (temp_array > 223.15) & (temp_array <= 243.15)
     result[mask] = ((temp_array[mask] - 223.15) * 6 + 120).astype(np.uint8)
-    mask = (temp_array > 213.15) & (temp_array <= 223.15)
+    mask = valid_mask & (temp_array > 213.15) & (temp_array <= 223.15)
     result[mask] = ((223.15 - temp_array[mask]) * 15 + 100).astype(np.uint8)
-    result[(temp_array > 183.15) & (temp_array <= 213.15)] = 0
-    mask = temp_array <= 183.15
+    result[valid_mask & (temp_array > 183.15) & (temp_array <= 213.15)] = 0
+    mask = valid_mask & (temp_array <= 183.15)
     result[mask] = ((temp_array[mask] - 173.15) * 25).astype(np.uint8)
 
     return result
@@ -175,17 +188,21 @@ def wvnrl_r(temp_array: np.ndarray) -> np.ndarray:
     """水蒸気カラースケール - 赤チャンネル"""
     result = np.full(len(temp_array), 128, dtype=np.uint8)
 
-    result[temp_array > 273.15] = 127
-    mask = (temp_array > 263.15) & (temp_array <= 273.15)
+    # 欠損値（0K）は黒
+    valid_mask = temp_array > 0
+    result[~valid_mask] = 0
+
+    result[valid_mask & (temp_array > 273.15)] = 127
+    mask = valid_mask & (temp_array > 263.15) & (temp_array <= 273.15)
     result[mask] = ((temp_array[mask] - 263.15) * 10.8 + 20).astype(np.uint8)
-    mask = (temp_array > 253.15) & (temp_array <= 263.15)
+    mask = valid_mask & (temp_array > 253.15) & (temp_array <= 263.15)
     result[mask] = (20 + (263.15 - temp_array[mask]) * 3).astype(np.uint8)
-    mask = (temp_array > 243.15) & (temp_array <= 253.15)
+    mask = valid_mask & (temp_array > 243.15) & (temp_array <= 253.15)
     result[mask] = (50 + (253.15 - temp_array[mask]) * 7.8).astype(np.uint8)
-    mask = (temp_array > 233.15) & (temp_array <= 243.15)
+    mask = valid_mask & (temp_array > 233.15) & (temp_array <= 243.15)
     result[mask] = ((127 + 243.15 - temp_array[mask]) * 12.8).astype(np.uint8)
-    result[(temp_array > 223.15) & (temp_array <= 233.15)] = 255
-    mask = temp_array <= 223.15
+    result[valid_mask & (temp_array > 223.15) & (temp_array <= 233.15)] = 255
+    mask = valid_mask & (temp_array <= 223.15)
     result[mask] = (127 + (temp_array[mask] - 203.15) * 6.4).astype(np.uint8)
 
     return result
@@ -195,17 +212,20 @@ def wvnrl_g(temp_array: np.ndarray) -> np.ndarray:
     """水蒸気カラースケール - 緑チャンネル"""
     result = np.zeros(len(temp_array), dtype=np.uint8)
 
-    result[temp_array > 273.15] = 0
-    mask = (temp_array > 263.15) & (temp_array <= 273.15)
+    # 欠損値（0K）は黒のまま
+    valid_mask = temp_array > 0
+
+    result[valid_mask & (temp_array > 273.15)] = 0
+    mask = valid_mask & (temp_array > 263.15) & (temp_array <= 273.15)
     result[mask] = ((273.15 - temp_array[mask]) * 10).astype(np.uint8)
-    mask = (temp_array > 253.15) & (temp_array <= 263.15)
+    mask = valid_mask & (temp_array > 253.15) & (temp_array <= 263.15)
     result[mask] = (100 + (263.15 - temp_array[mask]) * 5).astype(np.uint8)
-    mask = (temp_array > 243.15) & (temp_array <= 253.15)
+    mask = valid_mask & (temp_array > 243.15) & (temp_array <= 253.15)
     result[mask] = (150 + (253.15 - temp_array[mask]) * 10.5).astype(np.uint8)
-    result[(temp_array > 233.15) & (temp_array <= 243.15)] = 255
-    mask = (temp_array > 223.15) & (temp_array <= 233.15)
+    result[valid_mask & (temp_array > 233.15) & (temp_array <= 243.15)] = 255
+    mask = valid_mask & (temp_array > 223.15) & (temp_array <= 233.15)
     result[mask] = (180 + (temp_array[mask] - 223.15) * 7.5).astype(np.uint8)
-    mask = temp_array <= 223.15
+    mask = valid_mask & (temp_array <= 223.15)
     result[mask] = ((temp_array[mask] - 203.15) * 9).astype(np.uint8)
 
     return result
@@ -215,17 +235,20 @@ def wvnrl_b(temp_array: np.ndarray) -> np.ndarray:
     """水蒸気カラースケール - 青チャンネル"""
     result = np.zeros(len(temp_array), dtype=np.uint8)
 
-    result[temp_array > 273.15] = 140
-    mask = (temp_array > 263.15) & (temp_array <= 273.15)
+    # 欠損値（0K）は黒のまま
+    valid_mask = temp_array > 0
+
+    result[valid_mask & (temp_array > 273.15)] = 140
+    mask = valid_mask & (temp_array > 263.15) & (temp_array <= 273.15)
     result[mask] = (140 + (273.15 - temp_array[mask]) * 9).astype(np.uint8)
-    mask = (temp_array > 253.15) & (temp_array <= 263.15)
+    mask = valid_mask & (temp_array > 253.15) & (temp_array <= 263.15)
     result[mask] = (230 + (263.15 - temp_array[mask]) * 2.5).astype(np.uint8)
-    result[(temp_array > 243.15) & (temp_array <= 253.15)] = 255
-    mask = (temp_array > 233.15) & (temp_array <= 243.15)
+    result[valid_mask & (temp_array > 243.15) & (temp_array <= 253.15)] = 255
+    mask = valid_mask & (temp_array > 233.15) & (temp_array <= 243.15)
     result[mask] = (127 + (temp_array[mask] - 233.15) * 12.8).astype(np.uint8)
-    mask = (temp_array > 223.15) & (temp_array <= 233.15)
+    mask = valid_mask & (temp_array > 223.15) & (temp_array <= 233.15)
     result[mask] = (100 + (temp_array[mask] - 223.15) * 2.8).astype(np.uint8)
-    mask = temp_array <= 223.15
+    mask = valid_mask & (temp_array <= 223.15)
     result[mask] = ((temp_array[mask] - 203.15) * 5).astype(np.uint8)
 
     return result

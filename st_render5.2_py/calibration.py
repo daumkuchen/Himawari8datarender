@@ -53,13 +53,18 @@ def hsd_calibration(hs_data: 'HSData', debug: bool = False) -> np.ndarray:
     lookup_table = {}
 
     for val in unique_values:
-        # 放射輝度の計算
-        radiance = slope * val + intc
+        # 欠損値の検出（65534, 65535, 0など）
+        if val >= 65534 or val == 0:
+            # 欠損値は非常に低い温度（0K）に設定して、後で黒として描画される
+            lookup_table[val] = 0.0
+        else:
+            # 放射輝度の計算
+            radiance = slope * val + intc
 
-        # Planck関数の逆関数で輝度温度を計算
-        # T = (hc/kλ) / ln((2hc²/λ⁵) / L + 1)
-        temp = hc_over_k_wl / np.log((h2cc_over_wl5 / radiance) + 1)
-        lookup_table[val] = temp
+            # Planck関数の逆関数で輝度温度を計算
+            # T = (hc/kλ) / ln((2hc²/λ⁵) / L + 1)
+            temp = hc_over_k_wl / np.log((h2cc_over_wl5 / radiance) + 1)
+            lookup_table[val] = temp
 
     if debug:
         print("hsdCalibration3")
