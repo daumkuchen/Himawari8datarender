@@ -13,6 +13,7 @@ C++版（st_render5.2_cpp）からPythonに移植されました。
 - 複数のカラースケールに対応（白黒、BD、Color2、水蒸気）
 - 放射輝度から輝度温度への校正処理
 - RGB合成機能（異なる解像度のバンド間での自動リサイズ対応）
+- **GPU高速化対応** - CuPyによる画像補正の高速化（約3倍高速化）
 
 ## 必要な環境
 
@@ -21,9 +22,24 @@ C++版（st_render5.2_cpp）からPythonに移植されました。
   - numpy
   - Pillow
   - netCDF4 (GOES衛星データを処理する場合)
-  - opencv-python (画像補正機能を使用する場合、オプション)
+  - opencv-python (画像補正機能を使用する場合、必須)
+
+### GPU高速化（オプション）
+
+画像補正処理（`enhance`オプション）をGPUで高速化できます：
+
+- **必要なハードウェア**: NVIDIA GPU（CUDA Compute Capability 3.5以上）
+- **必要なソフトウェア**: CUDA 11.2以上
+- **必要なVRAM**: 4GB以上（11000x11000画像の場合）
+- **追加ライブラリ**: CuPy
+
+**処理時間の改善**:
+- CPU処理: 約88秒
+- GPU処理: 約20-30秒（**約3倍高速化**）
 
 ## インストール
+
+### 基本インストール（CPU版）
 
 ```bash
 # 依存ライブラリのインストール
@@ -33,8 +49,47 @@ pip install -r requirements.txt
 または、個別にインストール:
 
 ```bash
-pip install numpy Pillow netCDF4
+pip install numpy Pillow netCDF4 opencv-python
 ```
+
+### GPU高速化版のインストール
+
+CUDA 11.2環境の場合:
+```bash
+pip install numpy Pillow netCDF4 opencv-python python-dotenv
+pip install cupy-cuda11x
+```
+
+CUDA 12.x環境の場合:
+```bash
+pip install numpy Pillow netCDF4 opencv-python python-dotenv
+pip install cupy-cuda12x
+```
+
+**注意**: CuPyがインストールされていない場合は、自動的にCPU処理にフォールバックします。
+
+### GPU使用の制御（環境変数）
+
+`.env` ファイルでGPU使用を制御できます：
+
+1. `.env.example` をコピーして `.env` を作成:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. `.env` ファイルを編集:
+   ```bash
+   # GPU処理を有効にする（デフォルト）
+   USE_GPU=true
+
+   # GPU処理を無効にする（CPU処理を強制）
+   USE_GPU=false
+   ```
+
+**使用例**:
+- GPU環境でテスト実行したい場合: `USE_GPU=true`
+- GPU環境だがCPU処理で比較したい場合: `USE_GPU=false`
+- CuPyがインストールされていても強制的にCPU処理: `USE_GPU=false`
 
 ## 使用方法
 
